@@ -1,0 +1,44 @@
+# Python environment
+.venv/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test and lint cache
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Kaggle credentials
+kaggle.json
+access_token
+
+# Downloaded dataset
+data/*
+!data/.gitkeep
+
+# Generated images
+images/*
+!images/.gitkeep
+
+# Local VS Code configuration
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
