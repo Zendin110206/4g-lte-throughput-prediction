@@ -5,7 +5,7 @@ mobility, and contextual measurements relate to downlink throughput.
 
 ## Project Status
 
-**Ongoing — environment setup and data understanding**
+> **Status:** Ongoing — data understanding and first-trace inspection
 
 This repository is being developed as a focused machine learning comeback
 project. The first version is intentionally limited to one main notebook
@@ -13,6 +13,17 @@ covering data audit, exploratory analysis, regression baselines, model
 evaluation, and telecom-oriented interpretation.
 
 No final model result is claimed yet.
+
+## Start Here
+
+- Read the
+  [LTE domain notes](./notebooks/README.md) for the story behind the dataset,
+  the meaning of its radio metrics, and the questions that still need auditing.
+- Open the
+  [main analysis notebook](./notebooks/01_lte_throughput_analysis.ipynb) to
+  follow the project from data discovery onward.
+
+The notebook is intentionally developed one understandable step at a time.
 
 ## Problem Statement
 
@@ -60,7 +71,17 @@ Downloaded files are excluded from Git.
 To download the dataset locally:
 
 ```powershell
-uv run python -c "import kagglehub; path = kagglehub.dataset_download('aeryss/lte-dataset', output_dir='./data'); print(f'Dataset downloaded to: {path}')"
+$downloadCode = @'
+import kagglehub
+
+path = kagglehub.dataset_download(
+    "aeryss/lte-dataset",
+    output_dir="./data",
+)
+print("Dataset downloaded to:", path)
+'@
+
+uv run python -c $downloadCode
 ```
 
 ## Candidate Variables
@@ -110,7 +131,8 @@ examined first.
 ├── data/                  # Local dataset, excluded from Git
 ├── images/                # Selected figures for documentation
 ├── notebooks/
-│   └── 01_lte_throughput_analysis.ipynb
+│   ├── 01_lte_throughput_analysis.ipynb
+│   └── README.md           # Telecom domain notes
 ├── .gitignore
 ├── .python-version
 ├── README.md
@@ -150,11 +172,7 @@ Install the locked environment:
 uv sync
 ```
 
-Download the dataset:
-
-```powershell
-uv run python -c "import kagglehub; path = kagglehub.dataset_download('aeryss/lte-dataset', output_dir='./data'); print(f'Dataset downloaded to: {path}')"
-```
+Download the dataset using the command in [Dataset](#dataset).
 
 Open the project:
 
