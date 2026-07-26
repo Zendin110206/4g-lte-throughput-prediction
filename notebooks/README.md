@@ -1,6 +1,6 @@
 # Understanding the LTE Dataset
 
-> My domain notes before I ask a machine learning model to learn anything.
+> My notes for understanding what this dataset actually represents.
 
 This document is a companion to
 [`01_lte_throughput_analysis.ipynb`](./01_lte_throughput_analysis.ipynb).
@@ -9,9 +9,8 @@ describing: what one row means, why there are `car`, `bus`, `static`, and other
 mobility folders, what the radio metrics represent, and what I can or cannot
 conclude from them.
 
-I am not trying to memorize every LTE term at once. I only want a clear enough
-mental model to ask sensible questions, audit the data properly, and explain
-the model later in telecommunication terms.
+I am not trying to memorize every LTE term at once. I only want a clear mental
+model of the data and the telecommunication concepts behind it.
 
 ## The Story Behind the Data
 
@@ -74,6 +73,46 @@ The local dataset currently contains:
 | Download state | `D` for downloading and `I` for idle |
 | Main candidate target | `DL_bitrate`, measured in kbit/s |
 
+## TL;DR — All 23 Columns
+
+The original CSV files contain 20 columns. After adding three trace-level
+identifiers—`Trace ID`, `Source Category`, and `Source File`—the working table
+contains these 23 columns:
+
+<!-- markdownlint-disable MD013 -->
+
+| No. | Column | Data Type | Short Meaning |
+| ---: | --- | --- | --- |
+| 1 | `Trace ID` | `str` | Identifier for one measurement trace or session. |
+| 2 | `Source Category` | `str` | Mobility folder: static, pedestrian, bus, car, or train. |
+| 3 | `Source File` | `str` | Name of the original CSV trace file. |
+| 4 | `Timestamp` | `str` | Date and time when the observation was recorded. |
+| 5 | `Longitude` | `float64` | Longitude of the phone or user equipment. |
+| 6 | `Latitude` | `float64` | Latitude of the phone or user equipment. |
+| 7 | `Speed` | `int64` | Recorded movement speed in km/h. |
+| 8 | `Operatorname` | `str` | Mobile operator recorded for the connection. |
+| 9 | `CellID` | `int64` | Identifier of the serving cell. |
+| 10 | `NetworkMode` | `str` | Active radio technology, such as LTE or HSPA+. |
+| 11 | `RSRP` | `int64` | LTE reference-signal strength in dBm. |
+| 12 | `RSRQ` | `object` | LTE reference-signal quality in dB. |
+| 13 | `SNR` | `object` | Wanted signal compared with noise, in dB. |
+| 14 | `CQI` | `object` | Channel Quality Indicator reported by the phone. |
+| 15 | `RSSI` | `object` | Total received radio power in dBm. |
+| 16 | `DL_bitrate` | `int64` | Application-layer download rate in kbit/s. |
+| 17 | `UL_bitrate` | `int64` | Application-layer upload rate in kbit/s. |
+| 18 | `State` | `str` | Download state: `D` for downloading or `I` for idle. |
+| 19 | `NRxRSRP` | `object` | Reference-signal strength of a neighbouring cell. |
+| 20 | `NRxRSRQ` | `object` | Reference-signal quality of a neighbouring cell. |
+| 21 | `ServingCell_Lon` | `object` | Estimated longitude of the serving cell. |
+| 22 | `ServingCell_Lat` | `object` | Estimated latitude of the serving cell. |
+| 23 | `ServingCell_Distance` | `object` | Estimated phone-to-cell distance in metres. |
+
+<!-- markdownlint-enable MD013 -->
+
+`object` means the raw column currently contains mixed values rather than only
+numbers. For example, several radio and serving-cell columns use `-` when a
+measurement is unavailable.
+
 The 135 traces are distributed as follows:
 
 | Mobility context | Traces | What it represents |
@@ -95,13 +134,8 @@ values:
 | `LTE` | 4G |
 
 The paper notes that many train measurements contain a mixture of 3G and 4G.
-That means I must decide explicitly whether the model should:
-
-- predict throughput across every observed mobile technology; or
-- focus only on rows where `NetworkMode == "LTE"`.
-
-That decision belongs in the data audit. I should not silently call every row
-an LTE observation.
+Therefore, `NetworkMode` identifies the technology used by each individual
+observation instead of assuming that every row is LTE.
 
 ## What One Row Means
 
@@ -185,9 +219,7 @@ resources to the traffic direction that carries most user consumption.
 However, that is a network-design tendency, not a rule that every row must
 follow.
 
-For this project, `DL_bitrate` is the candidate prediction target. I still need
-to examine its distribution, idle observations, zeros, extreme values, and
-possible temporal behaviour before finalizing that choice.
+For this project, `DL_bitrate` is the candidate prediction target.
 
 ## A Mental Model for the Radio Metrics
 
@@ -382,102 +414,8 @@ The paper and local data define two values:
 | `D` | The trace is in a downloading period |
 | `I` | The trace is idle or not downloading |
 
-Idle rows should not be mixed into the regression automatically. They may
-represent a different data-generating condition, and they can make a model look
-good simply because zero or near-zero throughput is easy to predict.
-
-Before modeling, I need to compare `DL_bitrate` for `D` and `I` separately and
-document whether idle rows are excluded, modeled separately, or retained for a
-specific reason.
-
-## Grouping the 20 Columns
-
-I do not need to memorize a flat list of twenty names. Grouping them by purpose
-makes the dataset easier to reason about.
-
-| Group | Columns |
-| --- | --- |
-| Time and UE location | `Timestamp`, `Longitude`, `Latitude` |
-| Mobility | `Speed` plus the parent folder |
-| Network identity | `Operatorname`, `CellID`, `NetworkMode` |
-| Serving-cell radio | `RSRP`, `RSRQ`, `SNR`, `RSSI`, `CQI` |
-| Application traffic | `DL_bitrate`, `UL_bitrate`, `State` |
-| Neighbour cell | `NRxRSRP`, `NRxRSRQ` |
-| Serving-cell location | `ServingCell_Lon`, `ServingCell_Lat` |
-| UE-to-cell context | `ServingCell_Distance` |
-
-Together, these groups describe when and where the sample was captured, the
-movement and network context, the observed radio condition, nearby-cell
-information, and the bitrate experienced by the user.
-
-Some names require caution:
-
-- `Speed` is the device's recorded speed, while the folder describes the whole
-  mobility scenario.
-- `ServingCell_Distance` is an estimate based on coordinates, not a direct radio
-  ranging measurement.
-- `CellID` is an identifier, not a continuous quantity where a larger number
-  means a larger or better cell.
-- `Operatorname` is mostly anonymized as `A` or `B`, but a small number of local
-  rows contain numeric operator codes and require auditing.
-- `Timestamp` and location can carry trace identity and temporal information,
-  so using them as model features needs careful justification.
-
-## What This Data Can Help Me Study
-
-The dataset can support questions such as:
-
-- Does stronger RSRP usually correspond to higher downlink throughput?
-- Is CQI more informative than RSRP by itself?
-- What happens when signal strength is good but RSRQ or SNR is poor?
-- How does throughput vary across mobility scenarios?
-- How does estimated serving-cell distance relate to throughput?
-- Are moving traces more variable than static traces?
-- Which observed features are most useful for predicting `DL_bitrate`?
-- Which network conditions produce the largest prediction errors?
-
-These are working questions, not conclusions.
-
-The same measurements could also support other studies—coverage analysis,
-mobility analysis, handover research, or operator comparison—but this comeback
-project deliberately stays focused on one regression notebook.
-
-## What the Model Will Not Know
-
-Even a strong model will only see the columns I provide. The data does not give
-complete access to:
-
-- the number of active users in the cell;
-- exact scheduler decisions or allocated resource blocks;
-- cell bandwidth and detailed carrier configuration;
-- backhaul and core-network congestion;
-- content-server performance;
-- complete device and protocol state.
-
-If all recorded radio indicators look good but throughput is low, I can say
-that **unobserved network or application factors may be involved**. I cannot
-identify a specific hidden cause from this dataset alone.
-
-## My Data-Audit Checklist
-
-Before EDA or modeling, I want to answer:
-
-- [x] How many trace files exist?
-- [x] Do the files share the same 20-column schema?
-- [x] Which mobility scenarios are present?
-- [x] What does one row from one trace look like?
-- [ ] How many rows belong to each trace and mobility scenario?
-- [ ] Which columns contain `-`, empty values, impossible values, or sentinels?
-- [ ] Are timestamps duplicated or out of order inside a trace?
-- [ ] How do `D` and `I` rows differ?
-- [ ] Which network modes should be in scope?
-- [ ] Are there repeated or suspicious operator and cell identifiers?
-- [ ] How skewed is `DL_bitrate`, and are extreme values credible?
-- [ ] Which fields could leak trace or future information?
-- [ ] What identifier should be used for group-aware validation?
-
-This checklist is intentionally small and sequential. I only need to understand
-the data in front of me before moving to the next step.
+`State` simply separates observations collected during an active download from
+observations collected while the trace was idle.
 
 ## The Main Idea I Want to Remember
 
@@ -486,9 +424,6 @@ the data in front of me before moving to the next step.
 > adaptation. Context such as mobility, distance, and network mode helps explain
 > the situation. `DL_bitrate` is the observed user result—not a direct measure
 > of only one radio metric.
-
-That is enough domain knowledge to begin the audit without pretending that I
-already know everything about LTE.
 
 ## Sources
 
