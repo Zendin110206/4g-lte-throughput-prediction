@@ -5,7 +5,7 @@ mobility, and contextual measurements relate to downlink throughput.
 
 ## Project Status
 
-> **Status:** Ongoing — data understanding and first-trace inspection
+> **Status:** Ongoing — data understanding and basic cleaning complete
 
 This repository is being developed as a focused machine learning comeback
 project. The first version is intentionally limited to one main notebook
@@ -13,6 +13,11 @@ covering data audit, exploratory analysis, regression baselines, model
 evaluation, and telecom-oriented interpretation.
 
 No final model result is claimed yet.
+
+The 135 traces have been combined and structurally cleaned in the main
+notebook. Numeric placeholders are represented as missing values, exact
+duplicate rows have been removed, and timestamps have been parsed. Suspicious
+domain values remain unchanged until their network context is examined.
 
 ## Start Here
 
