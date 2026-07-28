@@ -167,6 +167,14 @@ individual row. A bus can stop. A car can wait at a traffic light. GPS speed
 can also be noisy. This is exactly why I should inspect the data instead of
 guessing from a folder name.
 
+The static traces make this limitation especially visible. Although 5,218
+static observations record a non-zero speed, speed changes only 20 times across
+15,234 consecutive-row comparisons, and every change appears together with a
+coordinate change. The latest coordinate and speed readings are then repeated
+across many rows. This step-like pattern is more consistent with periodic GPS
+reporting than continuous physical movement, so the original speed values are
+kept but interpreted cautiously.
+
 ## Bandwidth Is Not Throughput
 
 These two words are easy to mix up:
